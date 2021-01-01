@@ -1,0 +1,11 @@
+#!/bin/sh
+
+rsync -av \
+  --exclude 'old/' \
+  --include '*/' \
+  --include '*.htm' \
+  --include '*.html' \
+  --exclude '*' \
+  --delete \
+  --delete-excluded \
+  rsync://rsync.mirrorservice.org/gutenberg.org raw
