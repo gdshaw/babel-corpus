@@ -22,7 +22,7 @@ def make_path(textid):
     path += '/%d-h' % textid
     return path
 
-files = {}
+texts = {}
 for root, dirnames, filenames in os.walk('raw'):
     for filename in filenames:
         m = re.match('^([0-9]+)-h.html?$', filename)
@@ -30,6 +30,9 @@ for root, dirnames, filenames in os.walk('raw'):
             textid = int(m.group(1))
             if root == make_path(textid):
                 pathname = os.path.join(root, filename)
-                files[textid] = pathname
+                texts[textid] = pathname
 
-print(json.dumps(files))
+textlist = [{'textid': textid, 'pathname': pathname} for textid, pathname in texts.items()]
+textlist.sort(key=lambda entry: entry['textid'])
+for text in textlist:
+    print(json.dumps(text))
