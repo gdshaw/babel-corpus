@@ -72,8 +72,8 @@ wordcounts = {}
 for file in files:
     handle_file(file['pathname'], wordcounts)
 
-wordlist = [[word, count] for word, count in wordcounts.items()]
-wordlist.sort(key=lambda entry: -entry[1])
+wordlist = [{'word': word, 'count': count} for word, count in wordcounts.items()]
+wordlist.sort(key=lambda entry: -entry['count'])
 wordlist = wordlist[:args.number]
 for entry in wordlist:
     print(json.dumps(entry))
