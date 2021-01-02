@@ -1,0 +1,79 @@
+#!/usr/bin/python3
+
+# This file is part of Project Babel.
+# Copyright 2021 Graham Shaw
+# Redistribution and modification are permitted within the terms of the
+# BSD-3-Clause licence as defined by v3.4 of the SPDX Licence List.
+
+import sys
+import argparse
+import os
+import math
+import re
+import json
+import bs4
+
+# Note that:
+# - Words containing capital letters are rejected, in order to exclude proper
+#   nounts. This has the side effect of discarding the first word of each
+#   sentence.
+# - Words are split on apostrophes. This results in large numbers of counts
+#   for letters and letter pairs such as 's' and 't', 'n' and 'll'.
+# This behaviour would make the results unsuitable for some purposes, but it
+# is not expected to detract from the intended function of determing whether
+# a piece of text is written in a given language.
+
+parser = argparse.ArgumentParser(
+    description = 'Count word frequencies.')
+parser.add_argument('-l', '--lang', action='append',
+    help='BCP 47 language tag to accept')
+parser.add_argument('-n', '--number', type=int,
+    help='maximum number of words to report')
+parser.add_argument('files', default='files.json',
+    help='JSON file containing list of texts to process')
+args = parser.parse_args()
+
+def handle_paragraph(para, wordcounts):
+    children = para.contents
+    if len(children) != 1:
+        return
+    child = children[0]
+    if not isinstance(child, bs4.element.NavigableString):
+        return
+    text = str(child)
+    words = re.split('[^A-Za-z0-9]+', text)
+    for word in words:
+        if re.match('^[a-z]+$', word):
+            if word in wordcounts:
+                wordcounts[word] += 1
+            else:
+                wordcounts[word] = 1
+
+def handle_file(pathname, wordcounts):
+    with open(pathname, 'rb') as f:
+        soup = bs4.BeautifulSoup(f, 'html.parser')
+        html = soup.html
+        if not html:
+            return
+        lang = None
+        lang = html.get('lang', lang)
+        if args.lang:
+            if lang not in args.lang:
+                return
+        for para in soup.find_all('p'):
+            handle_paragraph(para, wordcounts)
+
+files = []
+with open(args.files, 'r') as f:
+    for line in f:
+        files.append(json.loads(line))
+
+wordcounts = {}
+for file in files:
+    handle_file(file['pathname'], wordcounts)
+
+wordlist = [[word, count] for word, count in wordcounts.items()]
+wordlist.sort(key=lambda entry: -entry[1])
+wordlist = wordlist[:args.number]
+for entry in wordlist:
+    print(json.dumps(entry))
