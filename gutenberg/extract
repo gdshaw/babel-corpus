@@ -49,5 +49,6 @@ for file in files:
                 paragraphs.append(content)
 
     if paragraphs:
+        file = dict(file)
         file['paragraphs'] = paragraphs
         print(json.dumps(file))
