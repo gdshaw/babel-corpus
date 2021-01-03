@@ -7,11 +7,8 @@
 
 import sys
 import argparse
-import os
-import math
 import re
 import json
-import bs4
 
 # Note that:
 # - Words containing capital letters are rejected, in order to exclude proper
@@ -29,19 +26,12 @@ parser.add_argument('-l', '--lang', action='append',
     help='BCP 47 language tag to accept')
 parser.add_argument('-n', '--number', type=int,
     help='maximum number of words to report')
-parser.add_argument('files', default='files.json',
-    help='JSON file containing list of texts to process')
+parser.add_argument('texts', nargs='?', default=None,
+    help='a JSON file containing the texts to processed')
 args = parser.parse_args()
 
 def handle_paragraph(para, wordcounts):
-    children = para.contents
-    if len(children) != 1:
-        return
-    child = children[0]
-    if not isinstance(child, bs4.element.NavigableString):
-        return
-    text = str(child)
-    words = re.split('[^A-Za-z0-9]+', text)
+    words = re.split('[^A-Za-z0-9]+', para)
     for word in words:
         if re.match('^[a-z]+$', word):
             if word in wordcounts:
@@ -49,28 +39,14 @@ def handle_paragraph(para, wordcounts):
             else:
                 wordcounts[word] = 1
 
-def handle_file(pathname, wordcounts):
-    with open(pathname, 'rb') as f:
-        soup = bs4.BeautifulSoup(f, 'html.parser')
-        html = soup.html
-        if not html:
-            return
-        lang = None
-        lang = html.get('lang', lang)
-        if args.lang:
-            if lang not in args.lang:
-                return
-        for para in soup.find_all('p'):
-            handle_paragraph(para, wordcounts)
-
-files = []
-with open(args.files, 'r') as f:
-    for line in f:
-        files.append(json.loads(line))
-
 wordcounts = {}
-for file in files:
-    handle_file(file['pathname'], wordcounts)
+texts = sys.stdin
+if args.texts:
+    texts = open(args.texts, 'r')
+for line in texts:
+    text = json.loads(line)
+    for para in text['paragraphs']:
+        handle_paragraph(para, wordcounts)
 
 wordlist = [{'word': word, 'count': count} for word, count in wordcounts.items()]
 wordlist.sort(key=lambda entry: -entry['count'])
