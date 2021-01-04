@@ -6,6 +6,7 @@
 # BSD-3-Clause licence as defined by v3.4 of the SPDX Licence List.
 
 import argparse
+import re
 import json
 import bs4
 
@@ -24,7 +25,9 @@ def extract(para):
     child = children[0]
     if not isinstance(child, bs4.element.NavigableString):
         return None
-    return str(child)
+    text = str(child)
+    text = re.sub('[\t\n\r ]+', ' ', text)
+    return text.strip()
 
 files = []
 with open(args.files, 'r') as f:
